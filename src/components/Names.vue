@@ -1,5 +1,4 @@
 <template>
-
   <div class="names" style="text-align: center; padding-top: 10px;">
     <div class="container-lg" >
       <img alt="FIO" src="../assets/fio-dark.svg" height="64" ><br /><br /><span class="text-xl-center">Domain / Address Search</span>
@@ -95,13 +94,12 @@
       <br />
     </div>
 
-
-
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import {mapGetters} from "vuex";
 export default {
   name: 'Names',
   data () {
@@ -130,6 +128,7 @@ export default {
       },
     }
   },
+
   methods: {
     clear () {
       this.alreadyRegistered = ""
@@ -137,13 +136,13 @@ export default {
       this.showDomainTable = false
       this.showAddressTable = false
     },
+
     getAddress() {
       const encoded = new TextEncoder().encode(this.input)
       crypto.subtle.digest("SHA-1", encoded).then( hash => {
         const hashArray = Array.from(new Uint8Array(hash)).slice(0,16).reverse()
         const hashHex = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-        axios.post("https://fio.blockpane.com/v1/chain/get_table_rows", {
+        axios.post(this.getEndpoint + "/v1/chain/get_table_rows", {
           code: "fio.address",
           scope: "fio.address",
           table: "fionames",
@@ -176,13 +175,13 @@ export default {
         })
       })
     },
+
     getDomain() {
       const encoded = new TextEncoder().encode(this.input)
       crypto.subtle.digest("SHA-1", encoded).then( hash => {
         const hashArray = Array.from(new Uint8Array(hash)).slice(0,16).reverse()
         const hashHex = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-        axios.post("https://fio.blockpane.com/v1/chain/get_table_rows", {
+        axios.post(this.getEndpoint + "/v1/chain/get_table_rows", {
           code: "fio.address",
           scope: "fio.address",
           table: "domains",
@@ -213,11 +212,12 @@ export default {
         })
       })
     },
+
     available() {
       console.log("checking")
       if (this.domainOrAddress === "domain" || this.domainOrAddress === "address") {
         console.log("searching for a " + this.domainOrAddress)
-        axios.post("https://fio.blockpane.com/v1/chain/avail_check",
+        axios.post(this.getEndpoint + "/v1/chain/avail_check",
             {
               fio_name: this.input
             }
@@ -264,7 +264,12 @@ export default {
         )}
     }
   },
+
   computed: {
+    ...mapGetters([
+      'getEndpoint',
+    ]),
+
     domainOrAddress() {
       this.clear()
       if (this.input.match("@")) return "address";
