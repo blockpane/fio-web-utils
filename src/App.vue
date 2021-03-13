@@ -1,27 +1,34 @@
 <template>
   <div id="app" style="border-bottom: 0;">
-    <div style="padding-bottom: 15px; padding-top: 0;" class="bg-dark text-light">
-      <b-row style="padding-top: 10px;">
-        <b-col class="col-sm-4">&nbsp;</b-col>
-        <b-col class="col-sm-4">
-        <b-button class="btn-dark" v-on:click="enableNames()">Names / Domains</b-button>
-        <b-button class="btn-dark" v-on:click="enableVotes()">Fee Votes</b-button>
-        <img src="./assets/anchor.svg" alt="connect anchor wallet" style="padding-left: 40px; height: 32px;"> &nbsp;
-        <b-button v-on:click="anchorLogin()" :disabled="anchorConnected" class="btn-md bg-transparent text-white">
-          <b-icon v-if="!anchorConnected"  v-b-popover.hover.top="'Connect to Anchor wallet'" class="text-secondary" icon="toggle2-off" font-scale="1.5"></b-icon>
-          <b-icon v-if="anchorConnected" v-b-popover.hover.top="'Anchor is connected'" class="text-success" icon="toggle-on" font-scale="1.2"></b-icon>
-        </b-button>
+    <div style="padding-bottom: 15px; padding-top: 0;" class="bg-dark text-light container-fluid">
+      <b-container fluid>
+      <b-row align-h="center" style="padding-top: 10px;">
+        <b-col class="col-4">
+          <b-button class="btn-dark" v-on:click="enableNames()">Names / Domains</b-button>
+          <b-button class="btn-dark" v-on:click="enableVotes()">Fee Votes</b-button>
+          <b-button class="btn-dark" v-on:click="enableTables()">Search tables</b-button>
         </b-col>
-        <b-col class="col-sm-1 text-light">
+        <b-col class="col-2">
+          <td>
+                <img src="./assets/anchor.svg" alt="connect anchor wallet" style="padding-right: 5px; padding-left: 40px; height: 32px;"> &nbsp;
+          </td>
+          <td>
+                <b-button v-on:click="anchorLogin()" :disabled="anchorConnected" class="btn-sm bg-transparent text-white btn-outline-dark">
+                  <b-icon v-if="!anchorConnected"  v-b-popover.hover.top="'Connect to Anchor wallet'" class="text-secondary" icon="toggle2-off" font-scale="1.5"></b-icon>
+                  <b-icon v-if="anchorConnected" v-b-popover.hover.top="'Anchor is connected'" class="text-success" icon="toggle-on" font-scale="1.5"></b-icon>
+                </b-button>
+          </td>
+        </b-col>
+        <b-col class="col-2 text-light">
           <div style="padding-top: 6px;">
-        <b-select v-model="network" v-on:change="setNetwork(network)" style="border-color: grey;" class="custom-select-sm bg-dark text-white-50">
-          <b-select-option value="mainnet">mainnet</b-select-option>
-          <b-select-option value="testnet">testnet</b-select-option>
-        </b-select>
+          <b-select v-model="network" v-on:change="setNetwork(network)" style="border-color: grey;" class="custom-select-sm bg-dark text-white-50">
+            <b-select-option value="mainnet">mainnet</b-select-option>
+            <b-select-option value="testnet">testnet</b-select-option>
+          </b-select>
           </div>
         </b-col>
-        <b-col class="col-sm-3">&nbsp;</b-col>
       </b-row>
+      </b-container>
     </div>
 
     <div v-if="showVote" style="border-bottom: 14px;">
@@ -29,6 +36,9 @@
     </div>
     <div v-if="showNames" style="border-bottom: 14px;">
       <Names/>
+    </div>
+    <div v-if="showTables" style="border-bottom: 14px;">
+      <Tables/>
     </div>
     <div style="border-top: 14px;"><hr></div>
 
@@ -41,7 +51,7 @@
         ≁ <b-link v-b-modal.about-modal class="light-link">About</b-link> ≁ <a class="light-link" href="https://blockpane.com/privacy.html">Privacy Policy</a> ≁ &nbsp;
         <b-link href="https://github.com/blockpane/fio-web-utils">
           <img src="./assets/GitHub-Mark-Light-32px.png" alt="source on Github" height="18">
-        </b-link> ≁
+        </b-link>
       </div>
     </div>
 
@@ -52,18 +62,21 @@
 import {mapActions, mapGetters, mapMutations} from "vuex";
 import FeeVote from './components/Fees.vue'
 import Names from './components/Names.vue'
+import Tables from './components/Tables.vue'
 
 export default {
   name: 'App',
   components: {
     FeeVote,
     Names,
+    Tables,
   },
 
   data () {
     return {
-      showVote: false,
       showNames: true,
+      showVote: false,
+      showTables: false,
       network: "mainnet",
     }
   },
@@ -79,6 +92,7 @@ export default {
     hideAll: function () {
       this.showVote = false
       this.showNames = false
+      this.showTables = false
     },
 
     enableVotes: function () {
@@ -90,6 +104,12 @@ export default {
       this.hideAll()
       this.showNames = true
     },
+
+    enableTables: function () {
+      this.hideAll()
+      this.showTables = true
+    },
+
   },
 
   computed: {

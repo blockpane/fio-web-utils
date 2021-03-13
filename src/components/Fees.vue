@@ -76,9 +76,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
-import { mapMutations } from 'vuex'
-import { mapActions } from 'vuex'
+import { mapGetters, mapMutations, mapActions } from 'vuex'
 
 export default {
   name: 'FeeVote',
