@@ -4,9 +4,9 @@
       <b-container fluid>
       <b-row align-h="center" style="padding-top: 10px;">
         <b-col class="col-4">
-          <b-button class="btn-dark" v-on:click="enableNames()">Names / Domains</b-button>
-          <b-button class="btn-dark" v-on:click="enableVotes()">Fee Votes</b-button>
-          <b-button class="btn-dark" v-on:click="enableTables()">Search tables</b-button>
+          <b-button class="btn-dark" v-on:click="$router.push('names')">Names / Domains</b-button>
+          <b-button class="btn-dark" v-on:click="$router.push('fees')">Fee Votes</b-button>
+          <b-button class="btn-dark" v-on:click="$router.push('tables')">Search tables</b-button>
         </b-col>
         <b-col class="col-2">
           <td>
@@ -31,14 +31,8 @@
       </b-container>
     </div>
 
-    <div v-if="showVote" style="border-bottom: 14px;">
-      <FeeVote/>
-    </div>
-    <div v-if="showNames" style="border-bottom: 14px;">
-      <Names/>
-    </div>
-    <div v-if="showTables" style="border-bottom: 14px;">
-      <Tables/>
+    <div style="border-bottom: 14px;">
+      <router-view class="view"></router-view>
     </div>
     <div style="border-top: 14px;"><hr></div>
 
@@ -60,16 +54,10 @@
 
 <script>
 import {mapActions, mapGetters, mapMutations} from "vuex";
-import FeeVote from './components/Fees.vue'
-import Names from './components/Names.vue'
-import Tables from './components/Tables.vue'
 
 export default {
   name: 'App',
   components: {
-    FeeVote,
-    Names,
-    Tables,
   },
 
   data () {

@@ -58,21 +58,21 @@
          </b-select>
          <b-form-text id="type-help">Type</b-form-text>
        </b-col>
-       <b-col v-if="form.showAdvanced" class="col-3">
+       <b-col v-if="form.showAdvanced" class="col-4">
          <td>
            <b-input v-on:keyup="copyToUpper()" class="border-dark text-sm-center" size="sm" v-model="form.lower"></b-input>
            <b-form-text id="lower-help">Lower bound</b-form-text>
          </td>
          <td>→</td>
          <td>
-           <b-input class="border-dark text-sm-center" size="sm" v-model="form.upper"></b-input>
+           <b-input :disabled="form.transform === 'hash'" class="border-dark text-sm-center" size="sm" v-model="form.upper"></b-input>
            <b-form-text id="upper-help">Upper Bound</b-form-text>
          </td>
        </b-col>
-       <b-col clas="col-5" v-if="form.showAdvanced">
+       <b-col clas="col-4" v-if="form.showAdvanced">
          <b-select class="custom-select-sm border-dark" v-on:change="setTypeFromTransform()"  v-model="form.transform">
            <b-select-option value="as-is">as-is</b-select-option>
-           <b-select-option value="hash">string -> hash (128)</b-select-option>
+           <b-select-option value="hash">string -> hash (i128)</b-select-option>
          </b-select>
          <b-form-text id="transform-help">Transform</b-form-text>
        </b-col>
@@ -88,18 +88,16 @@
         <b-col class="col-3">
           <b-select id="showResults" class="custom-select-sm border-dark" v-model="form.output">
             <b-select-option value="result">Query Result</b-select-option>
-            <b-select-option disabled value="note">Info</b-select-option>
+            <b-select-option disabled value="">Info</b-select-option>
             <b-select-option value="json">Query request (JSON)</b-select-option>
             <b-select-option value="abi">Contract ABI</b-select-option>
-            <b-select-option disabled value="note">Scaffolding</b-select-option>
-            <b-select-option value="shell">shell: bash script</b-select-option>
-            <b-select-option value="fio-go">code: Go/fio-go</b-select-option>
-            <b-select-option value="go">code: Go/stdlib</b-select-option>
-            <b-select-option value="python">code: Python3</b-select-option>
-            <!-- todo: more code generators ...
-            <b-select-option value="axios">code: nodejs/axios</b-select-option>
-            <b-select-option value="fetch">code: browser ES6/fetch</b-select-option>
-            -->
+            <b-select-option disabled value="">Scaffolding</b-select-option>
+            <b-select-option value="shell">Bash script</b-select-option>
+            <b-select-option value="browser">Browser (native)</b-select-option>
+            <b-select-option value="fio-go">Go (fio-go)</b-select-option>
+            <b-select-option value="go">Go (stdlib)</b-select-option>
+            <b-select-option value="node">NodeJS (axios/crypto)</b-select-option>
+            <b-select-option value="python">Python3 (requests/hashlib)</b-select-option>
           </b-select>
           <b-form-text id="output-help">Output</b-form-text>
         </b-col>
@@ -116,9 +114,17 @@
         </b-col>
       </b-row>
 
-      <b-row v-if="queryOutput !== ''"><b-col class="col-12 text-sm-center">&nbsp;<br />&nbsp;</b-col></b-row>
+      <b-row v-if="queryOutput !== ''">
+        <b-col class="col-sm-12 text-sm-left" style="padding: 10px;">
+          <b-button v-clipboard:copy="result" v-clipboard:success="copyResult" class="btn-light btn-outline-secondary btn-sm">
+            <b-icon v-if="copiedNotify === ''" icon="clipboard" scale="1.3"></b-icon>
+            <b-icon v-if="copiedNotify !== ''" class="text-success font-weight-bolder" icon="clipboard-check" scale="1.3"></b-icon>
+          </b-button>
+          <span class="text-sm-left text-secondary">&nbsp; {{ copiedNotify }}</span>
+        </b-col>
+      </b-row>
       <b-row v-if="queryOutput !== ''" align-v="stretch" class="bg-transparent" style="padding: 15px;">
-        <div class="text-monospace font-weight-lighter text-left" id="resultOut"  style="padding: 15px;">
+        <div class="text-monospace font-weight-lighter text-left" id="resultOut" ref="resultOut"  style="padding: 15px;">
           <pre class="text-black" v-html="queryOutput"></pre>
        </div>
       </b-row>
@@ -130,7 +136,7 @@
 
 <script>
 import Prism from 'prismjs'
-import { rawQuery, fioGoHashedQuery, fioGoNormalQuery, stdGoHashedQuery, stdGoNormalQuery, bashHashQuery, bashNormalQuery, pythonHashQuery, pythonNormalQuery} from './generator.js'
+import * as Scaffold from './generator.js'
 import {mapGetters} from "vuex";
 
 export default {
@@ -158,6 +164,7 @@ export default {
       abis: {},
       result: '',
       queryOutput: "",
+      copiedNotify: "",
     }
   },
 
@@ -167,8 +174,8 @@ export default {
 
       this.queryOutput = " "
 
-      if (!window.isSecureContext) {
-        this.queryOutput = "Sorry: cannot use 'crypto.subtle' library in an insecure context. Don't blame me, look at the w3c!"
+      if (!window.isSecureContext && this.form.transform === "hash") {
+        this.queryOutput = "Sorry: cannot use SubtleCrypto features in an insecure context. Don't blame me, look at the w3c!"
       }
 
       let languages = Prism.languages.javascript
@@ -179,40 +186,56 @@ export default {
           languages = Prism.languages.go
           name = "go"
           if (this.form.transform === "hash") {
-            this.result = stdGoHashedQuery(this.form, this.endpoint)
+            this.result = Scaffold.stdGoHashedQuery(this.form, this.endpoint)
             break
           }
-          this.result = stdGoNormalQuery(this.form, this.endpoint)
+          this.result = Scaffold.stdGoNormalQuery(this.form, this.endpoint)
           break
         case "fio-go":
           languages = Prism.languages.go
           name = "go"
           if (this.form.transform === "hash") {
-            this.result = fioGoHashedQuery(this.form, this.endpoint)
+            this.result = Scaffold.fioGoHashedQuery(this.form, this.endpoint)
             break
           }
-          this.result = fioGoNormalQuery(this.form, this.endpoint)
+          this.result = Scaffold.fioGoNormalQuery(this.form, this.endpoint)
           break
         case "shell":
           languages = Prism.languages.bash
           name = "bash"
           if (this.form.transform === "hash") {
-            this.result = bashHashQuery(this.form, this.endpoint)
+            this.result = Scaffold.bashHashQuery(this.form, this.endpoint)
             break
           }
-          this.result = await bashNormalQuery(this.form, this.endpoint)
+          this.result = await Scaffold.bashNormalQuery(this.form, this.endpoint)
           break
         case "python":
           languages = Prism.languages.python
           name = "python"
             if (this.form.transform === "hash") {
-              this.result = pythonHashQuery(this.form, this.endpoint)
+              this.result = Scaffold.pythonHashQuery(this.form, this.endpoint)
               break
             }
-            this.result = pythonNormalQuery(this.form, this.endpoint)
+            this.result = Scaffold.pythonNormalQuery(this.form, this.endpoint)
+          break
+        case "node":
+          languages = Prism.languages.javascript
+          name = "javascript"
+          if (this.form.transform === "hash") {
+            this.result = Scaffold.nodeHashQuery(this.form, this.endpoint)
+            break
+          }
+          this.result = Scaffold.nodeNormalQuery(this.form, this.endpoint)
+          break
+        case "browser":
+          if (this.form.transform === "hash") {
+            this.result = Scaffold.browserHashQuery(this.form, this.endpoint)
+            break
+          }
+          this.result = Scaffold.browserNormalQuery(this.form, this.endpoint)
           break
         case "json":
-          this.result = await rawQuery(this.form)
+          this.result = await Scaffold.rawQuery(this.form)
           break
         case "abi":
           this.result = JSON.stringify(this.abis[this.form.contract], null, 4)
@@ -225,7 +248,7 @@ export default {
             credentials: 'same-origin',
             redirect: 'error',
             referrerPolicy: 'no-referrer',
-            body: await rawQuery(self.form)
+            body: await Scaffold.rawQuery(self.form)
           });
           try {
             await response.json().then((body) => {
@@ -237,6 +260,14 @@ export default {
 
       }
       this.queryOutput = Prism.highlight(this.result, languages, name)
+    },
+
+    copyResult: async function () {
+      this.copiedNotify = "copied!"
+      let self = this
+      setTimeout(function (){
+        self.copiedNotify = ""
+      }, 1000)
     },
 
     copyToUpper: function () {
@@ -315,7 +346,7 @@ export default {
               "json": true
             }
         )
-      });
+      })
       self.queryOutput = "getting contracts ..."
       try {
         await response.json().then((body) => {
@@ -350,7 +381,7 @@ export default {
           redirect: 'error',
           referrerPolicy: 'no-referrer',
           body: JSON.stringify({"account_name": contract.value})
-        });
+        })
         try {
           await response.json().then((body) => {
               self.abis[contract.value] = body

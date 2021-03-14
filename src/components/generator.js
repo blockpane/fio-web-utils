@@ -75,6 +75,7 @@ func main() {
 		KeyType:    "i128",
 		Index:      "${ form.index }",
 		JSON:       true,
+		Reverse:    ${ form.reverse },
 	})
 	if err != nil {
 		panic(err)
@@ -179,6 +180,7 @@ type payload struct {
 	Index         string \`json:"index"\`
 	IndexPosition string \`json:"index_position"\`
 	Json          bool   \`json:"json"\`
+	Reverse       bool   \`json:"reverse"\`
 }
 
 func main() {
@@ -207,6 +209,7 @@ func main() {
 		KeyType:       "i128",
 		IndexPosition: "${ form.index }",
 		Json:          true,
+		Reverse:       ${ form.reverse },
 	})
 	if err != nil {
 		panic(err)
@@ -367,6 +370,10 @@ curl -s "\${URL}/v1/chain/get_table_rows" -d '{
 }
 
 export function pythonHashQuery(form, url) {
+    let rev = "False"
+    if (form.reverse === true) {
+        rev = "True"
+    }
     return `
 import hashlib
 import json
@@ -391,6 +398,7 @@ response = requests.post(url+"/v1/chain/get_table_rows", json={
     "key_type": "i128",
     "index_position": "${ form.index }",
     "json": True,
+    "reverse": ${ rev },
 })
 
 print(json.dumps(response.json(), indent=2))
@@ -438,6 +446,203 @@ print(json.dumps(response.json(), indent=2))
 `
 }
 
+export function nodeHashQuery(form, url) {
+    return `
+import axios from 'axios'
+import crypto from 'crypto'
+
+function nameHash(name) {
+    const hash = crypto.createHash('sha1')
+    return '0x' + hash.update(name).digest().slice(0,16).reverse().toString("hex")
+}
+
+async function getRows(hashed, url) {
+    const resp = await axios.post(url + "/v1/chain/get_table_rows", {
+        code: "${ form.contract }",
+        scope: "${ form.scope }",
+        table: "${ form.table }",
+        lower_bound: hashed,
+        upper_bound: hashed,
+        limit: ${ form.numRows },
+        key_type: "i128",
+        index_position: "${ form.index }",
+        json: true,
+        reverse: ${ form.reverse }
+    })
+    return resp.data
+}
+
+const query = "${ form.lower }"
+const url = "${ url }"
+
+console.log(await getRows(nameHash(query), url))
+
+`
+}
+
+export function nodeNormalQuery(form, url) {
+    let lower = form.lower
+    let upper = form.upper
+    if (!form.showAdvanced) {
+        lower = form.offset
+        upper = ""
+        form.index = 1
+        form.type = "i64"
+    }
+
+    return `
+import axios from 'axios'
+
+async function getRows(lower, upper, url) {
+    const resp = await axios.post(url + "/v1/chain/get_table_rows", {
+        code: "${ form.contract }",
+        scope: "${ form.scope }",
+        table: "${ form.table }",
+        lower_bound: lower,
+        upper_bound: upper,
+        limit: ${ form.numRows },
+        key_type: "${ form.type }",
+        index_position: "${ form.index }",
+        json: true,
+        reverse: ${ form.reverse }
+    })
+    return resp.data
+}
+
+const lower = "${ lower }"
+const upper = "${ upper }"
+const url = "${ url }"
+
+console.log(await getRows(lower, upper, url))
+
+`
+}
+
+export function browserHashQuery(form, url) {
+    return `
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Hash Example</title>
+</head>
+<body>
+<div><pre id="output"></pre></div>
+<script>
+    const url = "${ url }"
+    const query = "${ form.lower }"
+
+    async function hashI128(toHash) {
+        const encoded = new TextEncoder().encode(toHash)
+        // note: crypto.subtle is ONLY available in a secure context, so this only works on https sites!
+        return await crypto.subtle.digest("SHA-1", encoded).then( hash => {
+            const hashArray = Array.from(new Uint8Array(hash)).slice(0, 16).reverse()
+            return '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+        })
+    }
+
+    async function hashedQuery(query, url) {
+        try {
+            const response = await fetch(url + "/v1/chain/get_table_rows", {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                redirect: 'error',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify({
+                    code: "${ form.contract }",
+                    scope: "${ form.scope }",
+                    table: "${ form.table }",
+                    lower_bound: await hashI128(query),
+                    upper_bound: await hashI128(query),
+                    limit: ${ form.numRows },
+                    key_type: "i128",
+                    index_position: "${ form.index }",
+                    json: true,
+                    reverse: ${ form.reverse },
+                })
+            });
+            const body = await response.json()
+            document.getElementById("output").innerHTML = JSON.stringify(body, null, 4)
+        } catch (e) {
+            document.getElementById("output").innerHTML = e.toString()
+        }
+    }
+
+    hashedQuery(query, url)
+</script>
+</body>
+</html>
+
+`
+}
+
+export function browserNormalQuery(form, url) {
+    let lower = form.lower
+    let upper = form.upper
+    if (!form.showAdvanced) {
+        lower = form.offset
+        upper = ""
+        form.index = 1
+        form.type = "i64"
+    }
+
+    return `
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Example</title>
+</head>
+<body>
+    <div><pre id="output"></pre></div>
+    <script>
+        const url = "${ url }"
+        const upper = "${ upper }"
+        const lower = "${ lower }"
+        
+        async function query(lower, upper, url) {
+            try {
+                const response = await fetch(url + "/v1/chain/get_table_rows", {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    credentials: 'same-origin',
+                    redirect: 'error',
+                    referrerPolicy: 'no-referrer',
+                    body: JSON.stringify({
+                        code: "${ form.contract }",
+                        scope: "${ form.scope }",
+                        table: "${ form.table }",
+                        lower_bound: lower,
+                        upper_bound: upper,
+                        limit: ${ form.numRows },
+                        key_type: "${ form.type }",
+                        index_position: "${ form.index }",
+                        json: true,
+                        reverse: ${ form.reverse },
+                    })
+                });
+                const body = await response.json()
+                document.getElementById("output").innerHTML = JSON.stringify(body, null, 4)
+            } catch (e) {
+                document.getElementById("output").innerHTML = e.toString()
+            }
+        }
+        
+        query(lower, upper, url)
+    </script>
+</body>
+</html>
+
+`
+}
+
 export default {
     rawQuery,
     fioGoHashedQuery,
@@ -447,4 +652,8 @@ export default {
     bashNormalQuery,
     pythonHashQuery,
     pythonNormalQuery,
+    nodeHashQuery,
+    nodeNormalQuery,
+    browserHashQuery,
+    browserNormalQuery,
 }
