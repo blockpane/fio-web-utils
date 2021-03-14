@@ -2,7 +2,7 @@
   "plugins": [
     ["prismjs", {
       "languages": ["javascript", "go", "python", "bash"],
-      "theme": "tomorrow",
+      "theme": "coy",
       "css": true
     }]
   ]

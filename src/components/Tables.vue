@@ -3,13 +3,11 @@
     <b-container class="container-xl" style="padding-top: 10px;">
       <b-row align-v="start">
         <b-col class="col-2">
-          <b-select class="custom-select-sm border-dark" v-model="form.contract">
-            <b-select-option value="none">Contract:</b-select-option>
+          <b-select class="custom-select-sm border-dark" :options="contracts" v-on:change="selectedContract()" v-model="form.contract">
           </b-select>
         </b-col>
         <b-col class="col-2">
-          <b-select class="custom-select-sm border-dark" v-model="form.table">
-            <b-select-option value="none">Table:</b-select-option>
+          <b-select class="custom-select-sm border-dark" :options="tables" v-model="form.table">
           </b-select>
         </b-col>
         <b-col class="col-2">
@@ -29,7 +27,7 @@
           <b-form-text id="offset-help">Offset</b-form-text>
         </b-col>
         <b-col class="col-2">
-          <b-button class="btn-sm btn-dark" v-on:click="nextOffset()" >
+          <b-button class="btn-sm btn-dark" :disabled="form.showAdvanced" v-on:click="nextOffset()" >
             next
             <b-icon icon="arrow-right"></b-icon>
           </b-button>
@@ -49,7 +47,7 @@
          <b-form-text id="scope-help">Scope</b-form-text>
        </b-col>
        <b-col v-if="form.showAdvanced">
-         <b-input type="number" value="1" size="sm" class="border-dark text-sm-center" v-model="form.index"></b-input>
+         <b-input type="number" v-on:keyup.enter="executeQuery()" value="1" size="sm" class="border-dark text-sm-center" v-model="form.index"></b-input>
          <b-form-text id="index-help">Index</b-form-text>
        </b-col>
        <b-col v-if="form.showAdvanced" class="col-2">
@@ -64,7 +62,7 @@
          <b-container class="container-fluid">
            <b-row>
              <b-col>
-               <b-input class="border-dark text-sm-center" v-on:keyup="copyToUpper()" size="sm" v-model="form.lower"></b-input>
+               <b-input v-on:keyup="copyToUpper()" class="border-dark text-sm-center" size="sm" v-model="form.lower"></b-input>
                <b-form-text id="lower-help">Lower bound</b-form-text>
              </b-col>
              <b-col>
@@ -77,7 +75,6 @@
        <b-col clas="col-3" v-on="setTypeFromTransform()" v-if="form.showAdvanced">
          <b-select class="custom-select-sm border-dark" v-model="form.transform">
            <b-select-option value="as-is">as-is</b-select-option>
-           <b-select-option value="i64">name -> i64</b-select-option>
            <b-select-option value="hash">string -> hash (128)</b-select-option>
          </b-select>
          <b-form-text id="transform-help">Transform</b-form-text>
@@ -110,7 +107,7 @@
           <b-form-text id="output-help">Output</b-form-text>
         </b-col>
         <b-col class="col-2">
-          <b-check v-model="form.showAdvanced" class="border-dark"></b-check>
+          <b-check v-on:change="advancedChanged()" v-model="form.showAdvanced" class="border-dark"></b-check>
           <b-form-text id="rows-help">Advanced Options</b-form-text>
         </b-col>
         <b-col class="col-2">
@@ -118,14 +115,14 @@
           <b-form-text id="reverse-help">Reverse Sort Order</b-form-text>
         </b-col>
         <b-col class="col-2">
-          <b-button class="btn-dark btn-sm" v-on:click="executeQuery()">Execute Query</b-button>
+          <b-button class="btn-dark btn-sm" :disabled="disableQueryButton" v-on:click="executeQuery()">Execute Query</b-button>
         </b-col>
       </b-row>
 
-      <b-row v-if="queryOutput !== ''"><b-col class="col-12 text-sm-center">Result:</b-col></b-row>
-      <b-row v-if="queryOutput !== ''" align-v="stretch" class="rounded" style="background:#111; padding: 15px;">
+      <b-row v-if="queryOutput !== ''"><b-col class="col-12 text-sm-center">&nbsp;<br />&nbsp;</b-col></b-row>
+      <b-row v-if="queryOutput !== ''" align-v="stretch" class="bg-transparent" style="padding: 15px;">
         <div class="text-monospace font-weight-lighter text-left" id="resultOut"  style="padding: 15px;">
-          <pre class="text-white" v-html="queryOutput"></pre>
+          <pre class="text-black" v-html="queryOutput"></pre>
        </div>
       </b-row>
     </b-container>
@@ -137,6 +134,7 @@
 <script>
 import Prism from 'prismjs'
 import { rawQuery } from './generator.js'
+import {mapGetters} from "vuex";
 
 export default {
   name: "Tables",
@@ -145,7 +143,7 @@ export default {
       form: {
         contract: "none",
         table: "none",
-        numRows: 10,
+        numRows: 25,
         offset: 0,
         scope: "",
         index: 1,
@@ -158,20 +156,22 @@ export default {
         reverse: false,
         more: false,
       },
+      contracts: [{value: "none", text: "Contract:", disabled: true}],
+      tables: [{value: "none", text: "Table:", disabled: true}],
+      abis: {},
       result: '',
       queryOutput: "",
     }
   },
 
   methods: {
-    executeQuery: function () {
-      this.result = `
-// this is a test!
-{
-  "testing": "formatting"
-}
-`
-      let languages, name
+    executeQuery: async function () {
+      let self = this
+
+      this.queryOutput = " "
+      let languages = Prism.languages.javascript
+      let name = "javascript"
+      let response
       switch (this.form.output) {
         case "eos-go":
         case "fio-go":
@@ -187,19 +187,52 @@ export default {
           name = "python"
           break
         case "json":
-          this.result = rawQuery(this.form)
-          languages = Prism.languages.javascript
-          name = "javascript"
+          this.result = await rawQuery(this.form)
           break
-        default:
-          languages = Prism.languages.javascript
-          name = "javascript"
+        case "abi":
+          this.result = JSON.stringify(this.abis[this.form.contract], null, 4)
+          break
+        case "result":
+          response = await fetch(self.endpoint + "/v1/chain/get_table_rows", {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'error',
+            referrerPolicy: 'no-referrer',
+            body: await rawQuery(self.form)
+          });
+          try {
+            await response.json().then((body) => {
+                self.result = JSON.stringify(body, null, 4)
+            })
+          } catch (e) {
+            self.queryOutput = e
+          }
+
       }
       this.queryOutput = Prism.highlight(this.result, languages, name)
     },
 
     copyToUpper: function () {
       this.form.upper = this.form.lower
+      console.log(this.form.lower)
+    },
+
+    advancedChanged: function () {
+      if (this.form.showAdvanced === true) {
+        this.form.index = 1
+        this.form.type = "name"
+        this.form.upper = ""
+        this.form.lower = ""
+        this.form.transform = "as-is"
+        this.form.scope = this.form.contract
+        return
+      }
+      this.form.index = 1
+      this.form.type = "i64"
+      this.form.transform = "as-is"
+      this.form.scope = this.form.contract
     },
 
     setTypeFromTransform: function () {
@@ -223,12 +256,106 @@ export default {
       this.executeQuery()
     },
 
+    selectedContract: function () {
+      this.tables = [{value: "none", text: "Table:", disabled: true}]
+      this.form.table = "none"
+      this.form.scope = this.form.contract
+      this.queryOutput = " "
+      let self = this
+      for (const table of self.abis[self.form.contract]["abi"]["tables"]) {
+        self.tables.push({
+          value: table.name,
+          text: table.name,
+          disabled: false,
+        })
+      }
+    },
+
+    getContracts: async function () {
+      let self = this
+      const response = await fetch(self.endpoint + "/v1/chain/get_table_rows", {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        redirect: 'error',
+        referrerPolicy: 'no-referrer',
+        body: JSON.stringify(
+            {
+              "code": "eosio",
+              "scope": "eosio",
+              "table": "abihash",
+              "lower_bound": "0",
+              "limit": 100,
+              "json": true
+            }
+        )
+      });
+      self.queryOutput = "getting contracts ..."
+      try {
+        await response.json().then((body) => {
+          self.contracts = [
+            {value: "none", text: "Contract:", disabled: true}
+          ]
+          for (const row of body.rows) {
+            self.contracts.push({
+              value: row.owner,
+              text: row.owner,
+              disabled: false
+            })
+            self.queryOutput = "done."
+          }
+        })
+      } catch (e) {
+        self.queryOutput = e
+      }
+      await this.getAbis()
+    },
+
+    getAbis: async function () {
+      let self = this
+      self.queryOutput = "getting ABIs ..."
+      for (const contract of self.contracts) {
+        if (contract.value === "none") continue
+        const response = await fetch(self.endpoint + "/v1/chain/get_abi", {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-cache',
+          credentials: 'same-origin',
+          redirect: 'error',
+          referrerPolicy: 'no-referrer',
+          body: JSON.stringify({"account_name": contract.value})
+        });
+        try {
+          await response.json().then((body) => {
+              self.abis[contract.value] = body
+              self.queryOutput = "loaded abi for " + contract.value
+          })
+        } catch (e) {
+          self.queryOutput = e
+          throw e
+        }
+      }
+      this.queryOutput = "ready for queries"
+    },
+
   },
 
   mounted: function () {
+    this.getContracts()
   },
 
-  computed: {},
+  computed: {
+    ...mapGetters({
+      endpoint: 'getEndpoint',
+    }),
+
+    disableQueryButton: function () {
+      // todo: this will need to change when adding code generators
+      return !(this.form.contract !== "none" && (this.form.output === "abi" || this.form.table !== "none"))
+    },
+
+  },
 
 }
 </script>
