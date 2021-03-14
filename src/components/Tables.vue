@@ -46,7 +46,7 @@
          <b-input size="sm" class="border-dark text-sm-center" v-model="form.scope"></b-input>
          <b-form-text id="scope-help">Scope</b-form-text>
        </b-col>
-       <b-col v-if="form.showAdvanced">
+       <b-col class="col-1" v-if="form.showAdvanced">
          <b-input type="number" v-on:keyup.enter="executeQuery()" value="1" size="sm" class="border-dark text-sm-center" v-model="form.index"></b-input>
          <b-form-text id="index-help">Index</b-form-text>
        </b-col>
@@ -58,28 +58,23 @@
          </b-select>
          <b-form-text id="type-help">Type</b-form-text>
        </b-col>
-       <b-col v-if="form.showAdvanced" class="col-4">
-         <b-container class="container-fluid">
-           <b-row>
-             <b-col>
-               <b-input v-on:keyup="copyToUpper()" class="border-dark text-sm-center" size="sm" v-model="form.lower"></b-input>
-               <b-form-text id="lower-help">Lower bound</b-form-text>
-             </b-col>
-             <b-col>
-               <b-input class="border-dark text-sm-center" size="sm" v-model="form.upper"></b-input>
-               <b-form-text id="upper-help">Upper Bound</b-form-text>
-             </b-col>
-           </b-row>
-         </b-container>
+       <b-col v-if="form.showAdvanced" class="col-3">
+         <td>
+           <b-input v-on:keyup="copyToUpper()" class="border-dark text-sm-center" size="sm" v-model="form.lower"></b-input>
+           <b-form-text id="lower-help">Lower bound</b-form-text>
+         </td>
+         <td>→</td>
+         <td>
+           <b-input class="border-dark text-sm-center" size="sm" v-model="form.upper"></b-input>
+           <b-form-text id="upper-help">Upper Bound</b-form-text>
+         </td>
        </b-col>
-       <b-col clas="col-3" v-on="setTypeFromTransform()" v-if="form.showAdvanced">
-         <b-select class="custom-select-sm border-dark" v-model="form.transform">
+       <b-col clas="col-5" v-if="form.showAdvanced">
+         <b-select class="custom-select-sm border-dark" v-on:change="setTypeFromTransform()"  v-model="form.transform">
            <b-select-option value="as-is">as-is</b-select-option>
            <b-select-option value="hash">string -> hash (128)</b-select-option>
          </b-select>
          <b-form-text id="transform-help">Transform</b-form-text>
-       </b-col>
-       <b-col>
        </b-col>
       </b-row>
       <b-row>
@@ -93,15 +88,17 @@
         <b-col class="col-3">
           <b-select id="showResults" class="custom-select-sm border-dark" v-model="form.output">
             <b-select-option value="result">Query Result</b-select-option>
+            <b-select-option disabled value="note">Info</b-select-option>
             <b-select-option value="json">Query request (JSON)</b-select-option>
             <b-select-option value="abi">Contract ABI</b-select-option>
-            <!-- todo: code generators
+            <b-select-option disabled value="note">Scaffolding</b-select-option>
             <b-select-option value="shell">shell: bash script</b-select-option>
+            <b-select-option value="fio-go">code: Go/fio-go</b-select-option>
+            <b-select-option value="go">code: Go/stdlib</b-select-option>
+            <b-select-option value="python">code: Python3</b-select-option>
+            <!-- todo: more code generators ...
             <b-select-option value="axios">code: nodejs/axios</b-select-option>
             <b-select-option value="fetch">code: browser ES6/fetch</b-select-option>
-            <b-select-option value="eos-go">code: Go/eos-go</b-select-option>
-            <b-select-option value="fio-go">code: Go/fio-go</b-select-option>
-            <b-select-option value="python">code: Python3</b-select-option>
             -->
           </b-select>
           <b-form-text id="output-help">Output</b-form-text>
@@ -115,7 +112,7 @@
           <b-form-text id="reverse-help">Reverse Sort Order</b-form-text>
         </b-col>
         <b-col class="col-2">
-          <b-button class="btn-dark btn-sm" :disabled="disableQueryButton" v-on:click="executeQuery()">Execute Query</b-button>
+          <b-button class="btn-dark btn-sm" :disabled="disableQueryButton" v-on:click="executeQuery()">{{ queryButton }}</b-button>
         </b-col>
       </b-row>
 
@@ -133,7 +130,7 @@
 
 <script>
 import Prism from 'prismjs'
-import { rawQuery } from './generator.js'
+import { rawQuery, fioGoHashedQuery, fioGoNormalQuery, stdGoHashedQuery, stdGoNormalQuery, bashHashQuery, bashNormalQuery, pythonHashQuery, pythonNormalQuery} from './generator.js'
 import {mapGetters} from "vuex";
 
 export default {
@@ -169,22 +166,50 @@ export default {
       let self = this
 
       this.queryOutput = " "
+
+      if (!window.isSecureContext) {
+        this.queryOutput = "Sorry: cannot use 'crypto.subtle' library in an insecure context. Don't blame me, look at the w3c!"
+      }
+
       let languages = Prism.languages.javascript
       let name = "javascript"
       let response
       switch (this.form.output) {
-        case "eos-go":
+        case "go":
+          languages = Prism.languages.go
+          name = "go"
+          if (this.form.transform === "hash") {
+            this.result = stdGoHashedQuery(this.form, this.endpoint)
+            break
+          }
+          this.result = stdGoNormalQuery(this.form, this.endpoint)
+          break
         case "fio-go":
           languages = Prism.languages.go
           name = "go"
+          if (this.form.transform === "hash") {
+            this.result = fioGoHashedQuery(this.form, this.endpoint)
+            break
+          }
+          this.result = fioGoNormalQuery(this.form, this.endpoint)
           break
         case "shell":
           languages = Prism.languages.bash
           name = "bash"
+          if (this.form.transform === "hash") {
+            this.result = bashHashQuery(this.form, this.endpoint)
+            break
+          }
+          this.result = await bashNormalQuery(this.form, this.endpoint)
           break
         case "python":
           languages = Prism.languages.python
           name = "python"
+            if (this.form.transform === "hash") {
+              this.result = pythonHashQuery(this.form, this.endpoint)
+              break
+            }
+            this.result = pythonNormalQuery(this.form, this.endpoint)
           break
         case "json":
           this.result = await rawQuery(this.form)
@@ -353,6 +378,17 @@ export default {
     disableQueryButton: function () {
       // todo: this will need to change when adding code generators
       return !(this.form.contract !== "none" && (this.form.output === "abi" || this.form.table !== "none"))
+    },
+
+    queryButton: function () {
+      if (this.form.output === "result") {
+        return "Execute Query"
+      } else if (this.form.output === "json") {
+        return "Show Query Input"
+      } else if (this.form.output === "abi") {
+        return "Fetch ABI"
+      }
+      return "Generate Code"
     },
 
   },

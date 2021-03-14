@@ -7,7 +7,7 @@ async function hashI128(toHash) {
     })
 }
 
-export async function rawQuery(form) {
+async function getBounds(form) {
     let bounds = ''
     if (form.transform === "hash") {
         if (form.lower !== "") {
@@ -24,6 +24,11 @@ export async function rawQuery(form) {
         form.type = "i64"
         form.index = 1
     }
+    return bounds
+}
+
+export async function rawQuery(form) {
+    const bounds = await getBounds(form)
 
     return `
 {
@@ -39,6 +44,407 @@ export async function rawQuery(form) {
 }`
 }
 
+export function fioGoHashedQuery(form, url) {
+    return `
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/fioprotocol/fio-go"
+)
+
+const (
+	url = "${ url }"
+	query = "${ form.lower }"
+)
+
+func main() {
+	api, _, err := fio.NewConnection(nil, url)
+	if err != nil {
+		panic(err)
+	}
+
+	gtr, err := api.GetTableRowsOrder(fio.GetTableRowsOrderRequest{
+		Code:       "${ form.contract }",
+		Scope:      "${ form.scope }",
+		Table:      "${ form.table }",
+		LowerBound: fio.I128Hash(query), // converts to i128 hash
+		UpperBound: fio.I128Hash(query),
+		Limit:      ${ form.numRows },
+		KeyType:    "i128",
+		Index:      "${ form.index }",
+		JSON:       true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// eos.GetTablesRowsResp.Rows is a []byte, and would normally be unmarshalled into 
+	// a slice of whatever type was expected. for demonstration purposes, 
+	// this pretty-prints it as indented json:
+	j, err := json.MarshalIndent(json.RawMessage(gtr.Rows), "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+}
+`
+}
+
+export function fioGoNormalQuery(form, url) {
+    let upLow = `lower = "${ form.lower }"
+	upper = "${ form.upper }"`
+    if (!form.showAdvanced) {
+        upLow = `lower = "${ form.offset }"
+        upper = ""`
+        form.index = 1
+        form.type = "i64"
+    }
+    return `
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/fioprotocol/fio-go"
+)
+
+const (
+	url = "${ url }"
+	${ upLow }
+)
+
+func main() {
+	api, _, err := fio.NewConnection(nil, url)
+	if err != nil {
+		panic(err)
+	}
+
+	gtr, err := api.GetTableRowsOrder(fio.GetTableRowsOrderRequest{
+		Code:       "${ form.contract }",
+		Scope:      "${ form.scope }",
+		Table:      "${ form.table }",
+		LowerBound: lower,
+		UpperBound: upper,
+		Limit:      ${ form.numRows },
+		KeyType:    "${ form.type }",
+		Index:      "${ form.index }",
+		JSON:       true,
+		Reverse:    ${ form.reverse },
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// eos.GetTablesRowsResp.Rows is a []byte, and would normally be unmarshalled into 
+	// a slice of whatever type was expected. for demonstration purposes, 
+	// this pretty-prints it as indented json:
+	j, err := json.MarshalIndent(json.RawMessage(gtr.Rows), "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+}
+`
+}
+
+export function stdGoHashedQuery(form, url) {
+    return `
+package main
+
+import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+const (
+	url   = "${ url }"
+	query = "${ form.lower }"
+)
+
+type payload struct {
+	Code          string \`json:"code"\`
+	Scope         string \`json:"scope"\`
+	Table         string \`json:"table"\`
+	LowerBound    string \`json:"lower_bound"\`
+	UpperBound    string \`json:"upper_bound"\`
+	Limit         uint64 \`json:"limit"\`
+	KeyType       string \`json:"key_type"\`
+	Index         string \`json:"index"\`
+	IndexPosition string \`json:"index_position"\`
+	Json          bool   \`json:"json"\`
+}
+
+func main() {
+
+	// create our hash:
+	sha := sha1.New() // #nosec
+	_, err := sha.Write([]byte(query))
+	if err != nil {
+		panic(err)
+	}
+	b := sha.Sum(nil)
+	// reverse endianness
+	for i, j := 0, len(b)-1; i < j; i, j = i+1, j-1 {
+		b[i], b[j] = b[j], b[i]
+	}
+	// last 16 bytes of sha1-sum, as big-endian
+	hash := "0x" + hex.EncodeToString(b)[8:]
+
+	postBody, err := json.Marshal(payload{
+		Code:          "${ form.contract }",
+		Scope:         "${ form.scope }",
+		Table:         "${ form.table }",
+		LowerBound:    hash,
+		UpperBound:    hash,
+		Limit:         ${ form.numRows },
+		KeyType:       "i128",
+		IndexPosition: "${ form.index }",
+		Json:          true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := http.Post(url + "/v1/chain/get_table_rows", "application/json", bytes.NewReader(postBody))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	j, err := json.MarshalIndent(json.RawMessage(body), "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+}
+
+`
+}
+
+export function stdGoNormalQuery(form, url) {
+    let upLow = `lower = "${ form.lower }"
+	upper = "${ form.upper }"`
+    if (!form.showAdvanced) {
+        upLow = `lower = "${ form.offset }"
+        upper = ""`
+        form.index = 1
+        form.type = "i64"
+    }
+    return `
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+const (
+	url   = "${ url }"
+	${ upLow }
+)
+
+type payload struct {
+	Code          string \`json:"code"\`
+	Scope         string \`json:"scope"\`
+	Table         string \`json:"table"\`
+	LowerBound    string \`json:"lower_bound"\`
+	UpperBound    string \`json:"upper_bound"\`
+	Limit         uint64 \`json:"limit"\`
+	KeyType       string \`json:"key_type"\`
+	IndexPosition string \`json:"index_position"\`
+	Json          bool   \`json:"json"\`
+	Reverse       bool   \`json:"reverse"\`
+}
+
+func main() {
+
+	postBody, err := json.Marshal(payload{
+		Code:          "${ form.contract }",
+		Scope:         "${ form.scope }",
+		Table:         "${ form.table }",
+		LowerBound:    lower,
+		UpperBound:    upper,
+		Limit:         ${ form.numRows },
+		KeyType:       "${ form.type }",
+		IndexPosition: "${ form.index }",
+		Json:          true,
+		Reverse:       ${ form.reverse },
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := http.Post(url + "/v1/chain/get_table_rows", "application/json", bytes.NewReader(postBody))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	j, err := json.MarshalIndent(json.RawMessage(body), "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+}
+
+`
+}
+
+export function bashHashQuery(form, url) {
+    return `
+#!/bin/bash
+
+# ensure pre-requisites are in path:
+hash openssl && hash xxd && hash curl && hash jq || { echo "script requires openssl, vim, curl, and jq packages"; kill 0; }
+# ubuntu's rev doesn't like binary, but tac is fine, MacOS doesn't have tac, but rev is ok with binary...
+REV=$(which tac || which rev || { echo "could not find 'tac' or 'rev' utility"; kill 0; }) 2>/dev/null
+
+URL=${ url }
+QUERY=${ form.lower }
+
+# last 16 bytes of sha1-sum, as hex-encoded big-endian
+HASH="0x$(echo -n \${QUERY}| openssl sha1 -binary | LC_ALL=C $REV |xxd -p | cut -c 9-40)"
+
+curl -s "\${URL}/v1/chain/get_table_rows" -d '{
+  "code": "${ form.contract }",
+  "scope": "${ form.scope }",
+  "table": "${ form.table }",
+  "lower_bound": "'\${HASH}'",
+  "upper_bound": "'\${HASH}'",
+  "limit": ${ form.numRows },
+  "key_type": "${ form.type }",
+  "index_position": "${ form.index }",
+  "json": true,
+  "reverse": ${ form.reverse }
+}' | jq .
+
+`
+}
+
+
+export async function bashNormalQuery(form, url) {
+    const bounds = await getBounds(form)
+    return `
+#!/bin/bash
+
+hash curl && hash jq || { echo "script requires curl and jq packages"; kill 0; }
+
+URL=${ url }
+
+curl -s "\${URL}/v1/chain/get_table_rows" -d '{
+  "code": "${ form.contract }",
+  "scope": "${ form.scope }",
+  "table": "${ form.table }",
+  ${ bounds }
+  "limit": ${ form.numRows },
+  "key_type": "${ form.type }",
+  "index_position": "${ form.index }",
+  "json": true,
+  "reverse": ${ form.reverse }
+}' | jq .
+
+`
+}
+
+export function pythonHashQuery(form, url) {
+    return `
+import hashlib
+import json
+import requests
+
+query = b"${ form.lower }"
+url = "${ url }"
+
+h = hashlib.new('sha1')
+h.update(query)
+
+# last 16 bytes of sha1 hash in big endian
+hash_hex = '0x' + h.digest()[15::-1].hex()
+
+response = requests.post(url+"/v1/chain/get_table_rows", json={
+    "code": "${ form.contract }",
+    "scope": "${ form.scope }",
+    "table": "${ form.table }",
+    "lower_bound": hash_hex,
+    "upper_bound": hash_hex,
+    "limit": ${ form.numRows },
+    "key_type": "i128",
+    "index_position": "${ form.index }",
+    "json": True,
+})
+
+print(json.dumps(response.json(), indent=2))
+
+`
+}
+
+export function pythonNormalQuery(form, url) {
+    let rev = "False"
+    if (form.reverse === true) {
+        rev = "True"
+    }
+    let lower = form.lower
+    let upper = form.upper
+    if (!form.showAdvanced) {
+        lower = form.offset
+        upper = ""
+        form.index = 1
+        form.type = "i64"
+    }
+
+    return `
+import json
+import requests
+
+lower = "${ lower }"
+upper = "${ upper }"
+url = "${ url }"
+
+response = requests.post(url+"/v1/chain/get_table_rows", json={
+    "code": "${ form.contract }",
+    "scope": "${ form.scope }",
+    "table": "${ form.table }",
+    "lower_bound": lower,
+    "upper_bound": upper,
+    "limit": ${ form.numRows },
+    "key_type": "${ form.type }",
+    "index_position": "${ form.index }",
+    "json": True,
+    "reverse": ${ rev },
+})
+
+print(json.dumps(response.json(), indent=2))
+
+`
+}
+
 export default {
     rawQuery,
+    fioGoHashedQuery,
+    fioGoNormalQuery,
+    stdGoHashedQuery,
+    bashHashQuery,
+    bashNormalQuery,
+    pythonHashQuery,
+    pythonNormalQuery,
 }
