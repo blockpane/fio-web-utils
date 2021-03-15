@@ -42,16 +42,20 @@
       <b-row><b-col>&nbsp;<br />&nbsp;</b-col></b-row>
 
       <b-row align-v="center">
+        <b-col v-if="form.showAdvanced" class="col-1">
+          <b-check v-model="form.scopeQuery" v-on:change="clickedScoped()" class="border-dark"></b-check>
+          <b-form-text id="scope-help">Get by Scope</b-form-text>
+        </b-col>
        <b-col v-if="form.showAdvanced" class="col-2">
-         <b-input size="sm" class="border-dark text-sm-center" v-model="form.scope"></b-input>
+         <b-input :disabled="form.scopeQuery" size="sm" class="border-dark text-sm-center" v-model="form.scope"></b-input>
          <b-form-text id="scope-help">Scope</b-form-text>
        </b-col>
        <b-col class="col-1" v-if="form.showAdvanced">
-         <b-input type="number" v-on:keyup.enter="executeQuery()" value="1" size="sm" class="border-dark text-sm-center" v-model="form.index"></b-input>
+         <b-input type="number" :disabled="form.scopeQuery" v-on:keyup.enter="executeQuery()" value="1" size="sm" class="border-dark text-sm-center" v-model="form.index"></b-input>
          <b-form-text id="index-help">Index</b-form-text>
        </b-col>
        <b-col v-if="form.showAdvanced" class="col-2">
-         <b-select v-model="form.type" class="custom-select-sm border-dark">
+         <b-select :disabled="form.scopeQuery" v-model="form.type" class="custom-select-sm border-dark">
            <b-select-option value="name">name</b-select-option>
            <b-select-option value="i64">i64</b-select-option>
            <b-select-option value="i128">i128</b-select-option>
@@ -70,7 +74,7 @@
          </td>
        </b-col>
        <b-col clas="col-4" v-if="form.showAdvanced">
-         <b-select class="custom-select-sm border-dark" v-on:change="setTypeFromTransform()"  v-model="form.transform">
+         <b-select :disabled="form.scopeQuery" class="custom-select-sm border-dark" v-on:change="setTypeFromTransform()"  v-model="form.transform">
            <b-select-option value="as-is">as-is</b-select-option>
            <b-select-option value="hash">string -> hash (i128)</b-select-option>
          </b-select>
@@ -92,12 +96,12 @@
             <b-select-option value="json">Query request (JSON)</b-select-option>
             <b-select-option value="abi">Contract ABI</b-select-option>
             <b-select-option disabled value="">Scaffolding</b-select-option>
-            <b-select-option value="shell">Bash script</b-select-option>
-            <b-select-option value="browser">Browser (native)</b-select-option>
-            <b-select-option value="fio-go">Go (fio-go)</b-select-option>
-            <b-select-option value="go">Go (stdlib)</b-select-option>
-            <b-select-option value="node">NodeJS (axios/crypto)</b-select-option>
-            <b-select-option value="python">Python3 (requests/hashlib)</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="shell">Bash script</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="browser">Browser (native)</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="fio-go">Go (fio-go)</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="go">Go (stdlib)</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="node">NodeJS (axios/crypto)</b-select-option>
+            <b-select-option :disabled="form.scopeQuery" value="python">Python3 (requests/hashlib)</b-select-option>
           </b-select>
           <b-form-text id="output-help">Output</b-form-text>
         </b-col>
@@ -106,7 +110,7 @@
           <b-form-text id="rows-help">Advanced Options</b-form-text>
         </b-col>
         <b-col class="col-2">
-          <b-check v-model="form.reverse" class="border-dark"></b-check>
+          <b-check :disabled="form.scopeQuery" v-model="form.reverse" class="border-dark"></b-check>
           <b-form-text id="reverse-help">Reverse Sort Order</b-form-text>
         </b-col>
         <b-col class="col-2">
@@ -158,6 +162,7 @@ export default {
         showAdvanced: false,
         reverse: false,
         more: false,
+        scopeQuery: false,
       },
       contracts: [{value: "none", text: "Contract:", disabled: true}],
       tables: [{value: "none", text: "Table:", disabled: true}],
@@ -180,6 +185,7 @@ export default {
 
       let languages = Prism.languages.javascript
       let name = "javascript"
+      let path = "/v1/chain/get_table_rows"
       let response
       switch (this.form.output) {
         case "go":
@@ -241,7 +247,10 @@ export default {
           this.result = JSON.stringify(this.abis[this.form.contract], null, 4)
           break
         case "result":
-          response = await fetch(self.endpoint + "/v1/chain/get_table_rows", {
+          if (this.form.scopeQuery === true) {
+            path = "/v1/chain/get_table_by_scope"
+          }
+          response = await fetch(self.endpoint + path, {
             method: 'POST',
             mode: 'cors',
             cache: 'no-cache',
@@ -271,6 +280,9 @@ export default {
     },
 
     copyToUpper: function () {
+      if (this.form.scopeQuery === true) {
+        return
+      }
       this.form.upper = this.form.lower
       console.log(this.form.lower)
     },
@@ -284,6 +296,9 @@ export default {
         this.form.transform = "as-is"
         this.form.scope = this.form.contract
         return
+      }
+      if (this.form.scopeQuery === true) {
+        this.form.scopeQuery = false
       }
       this.form.index = 1
       this.form.type = "i64"
@@ -305,6 +320,15 @@ export default {
         this.form.offset = 0
       }
       this.executeQuery()
+    },
+
+    clickedScoped: function () {
+      this.form.lower = ""
+      this.form.upper = ""
+      if (this.form.scopeQuery === true) {
+        this.form.lower = "............1"
+        this.form.upper = "zzzzzzzzzzzz"
+      }
     },
 
     nextOffset: function () {

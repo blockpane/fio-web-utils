@@ -27,9 +27,22 @@ async function getBounds(form) {
     return bounds
 }
 
-export async function rawQuery(form) {
-    const bounds = await getBounds(form)
+function rawScopeQuery(form) {
+    return `
+{
+  "code": "${ form.contract }",
+  "table": "${ form.table }",
+  "lower_bound": "${ form.lower }",
+  "upper_bound": "${ form.upper }",
+  "limit": ${ form.numRows }
+}`
+}
 
+export async function rawQuery(form) {
+    if (form.scopeQuery === true) {
+        return rawScopeQuery(form)
+    }
+    const bounds = await getBounds(form)
     return `
 {
   "code": "${ form.contract }",
