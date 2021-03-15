@@ -326,6 +326,7 @@ export default {
       this.form.lower = ""
       this.form.upper = ""
       if (this.form.scopeQuery === true) {
+        this.form.output = "result"
         this.form.lower = "............1"
         this.form.upper = "zzzzzzzzzzzz"
       }
