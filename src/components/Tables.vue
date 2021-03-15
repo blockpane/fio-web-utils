@@ -44,7 +44,7 @@
       <b-row align-v="center">
         <b-col v-if="form.showAdvanced" class="col-1">
           <b-check v-model="form.scopeQuery" v-on:change="clickedScoped()" class="border-dark"></b-check>
-          <b-form-text id="scope-help">Get by Scope</b-form-text>
+          <b-form-text id="scope-help">By Scope</b-form-text>
         </b-col>
        <b-col v-if="form.showAdvanced" class="col-2">
          <b-input :disabled="form.scopeQuery" size="sm" class="border-dark text-sm-center" v-model="form.scope"></b-input>
