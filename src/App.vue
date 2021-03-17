@@ -3,29 +3,50 @@
     <div style="padding-bottom: 15px; padding-top: 0;" class="bg-dark text-light container-fluid">
       <b-container fluid>
       <b-row align-h="center" style="padding-top: 10px;">
-        <b-col class="col-4">
-          <b-button class="btn-dark" v-on:click="$router.push('names')">Names / Domains</b-button>
-          <b-button class="btn-dark" v-on:click="$router.push('fees')">Fee Votes</b-button>
-          <b-button class="btn-dark" v-on:click="$router.push('tables')">Search tables</b-button>
+        <b-col class="col-3">
+          <b-dropdown variant="dark" text="FIO Tools">
+            <b-dropdown-item-button variant="dark" v-on:click="$router.push('names')">Name / Domain Lookup</b-dropdown-item-button>
+          </b-dropdown>
+          <b-dropdown variant="dark" text="BP Tools">
+            <b-dropdown-item-button variant="dark" v-on:click="$router.push('fees')">Fee Votes</b-dropdown-item-button>
+          </b-dropdown>
+          <b-dropdown variant="dark" text="Dev Tools">
+            <b-dropdown-item-button variant="dark" v-on:click="$router.push('tables')">Search Tables</b-dropdown-item-button>
+          </b-dropdown>
+        </b-col>
+        <b-col class="col-4"> &nbsp; </b-col>
+        <b-col class="col-3 text-light">
+          <td>
+          <div style="padding-top: 6px;">
+            <b-select v-model="network" class="custom-select-sm border-dark bg-dark text-white-50">
+              <b-select-option value="mainnet">Main Net</b-select-option>
+              <b-select-option value="testnet">Test Net</b-select-option>
+            </b-select>
+          </div>
+          </td>
+          <td>
+            <div v-if="network === 'mainnet'">
+            <b-select v-model="currentNode" v-on:change="updateCurrent" :options="mainNodes" class="custom-select-sm border-dark bg-dark text-white-50">
+            </b-select>
+            </div>
+          </td>
+          <td>
+            <div v-if="network === 'testnet'">
+              <b-select v-model="currentNode" v-on:change="updateCurrent" :options="testNodes" style="border-color: grey;" class="custom-select-sm border-dark bg-dark text-white-50">
+              </b-select>
+            </div>
+          </td>
         </b-col>
         <b-col class="col-2">
           <td>
-                <img src="./assets/anchor.svg" alt="connect anchor wallet" style="padding-right: 5px; padding-left: 40px; height: 32px;"> &nbsp;
+            <img src="./assets/anchor.svg" alt="connect anchor wallet" style="padding-right: 5px; padding-left: 40px; height: 32px;"> &nbsp;
           </td>
           <td>
-                <b-button v-on:click="anchorLogin()" :disabled="anchorConnected" class="btn-sm bg-transparent text-white btn-outline-dark">
-                  <b-icon v-if="!anchorConnected"  v-b-popover.hover.top="'Connect to Anchor wallet'" class="text-secondary" icon="toggle2-off" font-scale="1.5"></b-icon>
-                  <b-icon v-if="anchorConnected" v-b-popover.hover.top="'Anchor is connected'" class="text-success" icon="toggle-on" font-scale="1.5"></b-icon>
-                </b-button>
+            <b-button v-on:click="anchorLogin()" :disabled="getAnchorConnected" class="btn-sm bg-transparent text-white btn-outline-dark">
+              <b-icon v-if="!getAnchorConnected"  v-b-popover.hover.top="'Connect to Anchor wallet'" class="text-secondary" icon="toggle2-off" font-scale="1.5"></b-icon>
+              <b-icon v-if="getAnchorConnected" v-b-popover.hover.top="'Anchor is connected'" class="text-success" icon="toggle-on" font-scale="1.5"></b-icon>
+            </b-button>
           </td>
-        </b-col>
-        <b-col class="col-2 text-light">
-          <div style="padding-top: 6px;">
-          <b-select v-model="network" v-on:change="setNetwork(network)" style="border-color: grey;" class="custom-select-sm bg-dark text-white-50">
-            <b-select-option value="mainnet">mainnet</b-select-option>
-            <b-select-option value="testnet">testnet</b-select-option>
-          </b-select>
-          </div>
         </b-col>
       </b-row>
       </b-container>
@@ -66,6 +87,47 @@ export default {
       showVote: false,
       showTables: false,
       network: "mainnet",
+      currentNode: "https://fio.blockpane.com",
+      mainNodes: [
+        {value: "https://fio.blockpane.com", text: "API: Blockpane"},
+        {value: "https://fio.greymass.com", text: "API: Greymass"},
+        {value: "https://fio.eosusa.news", text: "API: EOSUSA"},
+        {value: "https://api.fio.alohaeos.com", text: "API: Aloha EOS"},
+        {value: "https://fio.zenblocks.io", text: "API: Zen Blocks"},
+        {value: "https://api.fio.currencyhub.io", text: "API: Currency Hub"},
+        {value: "https://api.fio.eosdetroit.io", text: "API: EOS Detroit"},
+        {value: "https://fio.eosphere.io", text: "API: EOSphere"},
+        {value: "https://fio.acherontrading.com", text: "API: Acheron"},
+        {value: "https://fio.eu.eosamsterdam.net", text: "API: EOS Amsterdam"},
+        {value: "https://api.fio.services", text: "API: fio.services"},
+        {value: "https://api.fio.greeneosio.com", text: "API: Green EOSIO"},
+        {value: "https://fio.cryptolions.io", text: "API: Cryptolions"},
+        {value: "https://api.fiosweden.org", text: "API: EOS Sweden"},
+        {value: "https://fio-bp.dmail.co", text: "API: Dmail"},
+        {value: "https://fio.genereos.io", text: "API: Genereos"},
+        {value: "https://fio.eosrio.io", text: "API: EOSRIO"},
+        {value: "https://fio.eoscannon.io", text: "API: EOS Cannon"},
+        {value: "https://fio.eosdublin.io", text: "API: EOS Dublin"},
+        {value: "https://fio.eosdac.io", text: "API: EOS DAC"},
+        {value: "https://fio.eos.barcelona", text: "API: EOS Barcelona"},
+        {value: "https://fio.eosargentina.io", text: "API: EOS Argentina"},
+        {value: "https://fioapi.ledgerwise.io", text: "API: Ledgerwise"},
+        {value: "https://fio-mainnet.eosblocksmith.io", text: "API: EOS Blocksmith"},
+        {value: "https://fio-za.eostribe.io", text: "API: EOS Tribe"},
+      ],
+      testNodes: [
+        {value: "https://fiotestnet.blockpane.com", text: "Blockpane"},
+        {value: "https://fiotestnet.greymass.com", text: "Greymass"},
+        {value: "https://testnet.fio.eosdetroit.io", text: "EOS Detroit"},
+        {value: "https://test.fio.eosusa.news", text: "EOSUSA"},
+        {value: "https://api.fiotest.alohaeos.com", text: "Aloha EOS"},
+        {value: "https://api.fiotest.currencyhub.io", text: "Currency Hub"},
+        {value: "https://testnet.fioprotocol.io", text: "Cryptolions"},
+        {value: "https://api.testnet.fiosweden.org", text: "EOS Sweden"},
+        {value: "https://fio-test.eos.barcelona", text: "EOS Barcelona"},
+        {value: "https://fiotestnet.ledgerwise.io", text: "Ledgerwise"},
+        {value: "https://fio-testnet.eosblocksmith.io", text: "EOS Blocksmith"},
+      ],
     }
   },
 
@@ -98,17 +160,31 @@ export default {
       this.showTables = true
     },
 
+    updateCurrent: function (){
+      let self = this
+      console.log(typeof self.currentNode)
+      this.setNetwork({net: self.network, endpoint: self.currentNode})
+      self.currentNode = self.getEndpoint
+      //console.log(this.currentNode)
+    },
+
   },
 
   computed: {
-    ...mapGetters({
-        anchorConnected: 'getAnchorConnected',
-    })
+    ...mapGetters([
+        'getAnchorConnected',
+        'getEndpoint'
+    ])
   },
 
   watch: {
     network: function () {
-      this.setNetwork(this.network)
+      if (this.network === "mainnet") {
+        this.currentNode = this.mainNodes[0].value
+      } else {
+        this.currentNode = this.testNodes[0].value
+      }
+      this.updateCurrent()
     },
   }
 

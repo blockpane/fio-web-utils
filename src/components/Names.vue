@@ -98,7 +98,6 @@
 </template>
 
 <script>
-import axios from 'axios';
 import {mapGetters} from "vuex";
 export default {
   name: 'Names',
@@ -138,128 +137,154 @@ export default {
     },
 
     getAddress() {
-      const encoded = new TextEncoder().encode(this.input)
+      let self = this
+      const encoded = new TextEncoder().encode(self.input)
       crypto.subtle.digest("SHA-1", encoded).then( hash => {
         const hashArray = Array.from(new Uint8Array(hash)).slice(0,16).reverse()
         const hashHex = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-        axios.post(this.getEndpoint + "/v1/chain/get_table_rows", {
-          code: "fio.address",
-          scope: "fio.address",
-          table: "fionames",
-          lower_bound: hashHex,
-          upper_bound: hashHex,
-          limit: 1,
-          key_type: "i128",
-          index_position: "5",
-          json: true,
-          reverse: true
-        }).then(res=> {
-          if (res.data.rows != null && res.data.rows[0] != null) {
-            this.addressResult.name = res.data.rows[0].name
-            this.addressResult.owner_account = res.data.rows[0].owner_account
-            this.addressResult.bloks = 'https://fio.bloks.io/account/' + res.data.rows[0].owner_account
-            const t = new Date(res.data.rows[0].expiration * 1000);
-            this.addressResult.expiration = t.toISOString()
-            this.addressResult.mappings = ""
-            res.data.rows[0].addresses.forEach(r=> {
-              this.addressResult.mappings += `${r.token_code}/${r.chain_code}: ${r.public_address}` + "\n"
-              console.log(this.addressResult.mappings)
-            })
-            this.addressResult.bundleeligiblecountdown = res.data.rows[0].bundleeligiblecountdown
-            this.showAddressTable = true
-            console.log(this.addressResult)
-          }
+        fetch(self.getEndpoint + "/v1/chain/get_table_rows", {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-cache',
+          credentials: 'same-origin',
+          redirect: 'error',
+          referrerPolicy: 'no-referrer',
+          body: JSON.stringify(
+              {
+                code: "fio.address",
+                scope: "fio.address",
+                table: "fionames",
+                lower_bound: hashHex,
+                upper_bound: hashHex,
+                limit: 1,
+                key_type: "i128",
+                index_position: "5",
+                json: true,
+                reverse: true
+              })
+        }).then(body => {
+          body.json().then(res => {
+            if (res.rows != null && res.rows[0] != null) {
+              self.addressResult.name = res.rows[0].name
+              self.addressResult.owner_account = res.rows[0].owner_account
+              self.addressResult.bloks = 'https://fio.bloks.io/account/' + res.rows[0].owner_account
+              const t = new Date(res.rows[0].expiration * 1000);
+              self.addressResult.expiration = t.toISOString()
+              self.addressResult.mappings = ""
+              res.rows[0].addresses.forEach(r => {
+                self.addressResult.mappings += `${r.token_code}/${r.chain_code}: ${r.public_address}` + "\n"
+              })
+              self.addressResult.bundleeligiblecountdown = res.rows[0].bundleeligiblecountdown
+              self.showAddressTable = true
+            }
+          })
         }).catch(error=> {
           console.log(error)
-          this.showAddressTable = false
+          self.showAddressTable = false
         })
       })
     },
 
     getDomain() {
-      const encoded = new TextEncoder().encode(this.input)
+      let self = this
+      const encoded = new TextEncoder().encode(self.input)
       crypto.subtle.digest("SHA-1", encoded).then( hash => {
         const hashArray = Array.from(new Uint8Array(hash)).slice(0,16).reverse()
         const hashHex = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-        axios.post(this.getEndpoint + "/v1/chain/get_table_rows", {
-          code: "fio.address",
-          scope: "fio.address",
-          table: "domains",
-          lower_bound: hashHex,
-          upper_bound: hashHex,
-          limit: 1,
-          key_type: "i128",
-          index_position: "4",
-          json: true,
-          reverse: true
-        }).then(res=> {
-          if (res.data.rows != null && res.data.rows[0] != null) {
-            this.domainResult.name = res.data.rows[0].name
-            this.domainResult.account = res.data.rows[0].account
-            this.domainResult.bloks = 'https://fio.bloks.io/account/' + res.data.rows[0].account
-            this.domainResult.is_public = "private domain"
-            if (res.data.rows[0].is_public === 1) {
-              this.domainResult.is_public = "domain allows public registrations"
+        fetch(self.getEndpoint + "/v1/chain/get_table_rows", {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-cache',
+          credentials: 'same-origin',
+          redirect: 'error',
+          referrerPolicy: 'no-referrer',
+          body: JSON.stringify({
+              code: "fio.address",
+              scope: "fio.address",
+              table: "domains",
+              lower_bound: hashHex,
+              upper_bound: hashHex,
+              limit: 1,
+              key_type: "i128",
+              index_position: "4",
+              json: true,
+              reverse: true
+          })
+        }).then(body => {
+          body.json().then(res => {
+            if (res.rows != null && res.rows[0] != null) {
+              self.domainResult.name = res.rows[0].name
+              self.domainResult.account = res.rows[0].account
+              self.domainResult.bloks = 'https://fio.bloks.io/account/' + res.rows[0].account
+              self.domainResult.is_public = "private domain"
+              if (res.rows[0].is_public === 1) {
+                self.domainResult.is_public = "domain allows public registrations"
+              }
+              const t = new Date(res.rows[0].expiration * 1000);
+              self.domainResult.expiration = t.toISOString()
+              self.showDomainTable = true
             }
-            const t = new Date(res.data.rows[0].expiration * 1000);
-            this.domainResult.expiration = t.toISOString()
-            this.showDomainTable = true
-            console.log(this.domainResult)
-          }
+          })
         }).catch(error=> {
           console.log(error)
-          this.showDomainTable = false
+          self.showDomainTable = false
         })
       })
     },
 
     available() {
-      console.log("checking")
-      if (this.domainOrAddress === "domain" || this.domainOrAddress === "address") {
-        console.log("searching for a " + this.domainOrAddress)
-        axios.post(this.getEndpoint + "/v1/chain/avail_check",
-            {
-              fio_name: this.input
+      let self = this
+      if (self.domainOrAddress === "domain" || self.domainOrAddress === "address") {
+        fetch(self.getEndpoint + "/v1/chain/avail_check",  {
+              method: 'POST',
+              mode: 'cors',
+              cache: 'no-cache',
+              credentials: 'same-origin',
+              redirect: 'error',
+              referrerPolicy: 'no-referrer',
+              body: JSON.stringify({
+                  fio_name: self.input
+                })
             }
-        ).then(res => {
-          this.gotResponse = true;
-          this.status = res.data;
-          if (res.status === 400) {
-            this.querySuccess = false
-            this.validResult = false
-            this.resultShow = true
-            this.alreadyRegistered = "error"
-            if (res.data.fields[0].error != null) {
-              this.alreadyRegistered = res.data.fields[0].error
+        ).then(body => {
+          body.json().then(res => {
+            self.gotResponse = true;
+            self.status = body.status;
+            if (body.status === 400) {
+              self.querySuccess = false
+              self.validResult = false
+              self.resultShow = true
+              self.alreadyRegistered = "error " + res.fields[0].error
+            } else if (res.is_registered === 0) {
+              self.querySuccess = true
+              self.validResult = true
+              self.resultShow = true
+              self.alreadyRegistered = self.domainOrAddress + " is not registered"
+            } else if (res.is_registered === 1) {
+              self.querySuccess = false
+              self.validResult = true
+              self.resultShow = true
+              self.alreadyRegistered = self.domainOrAddress + " is already registered"
+            } else {
+              self.querySuccess = false
+              self.validResult = true
+              self.resultShow = false
+              self.alreadyRegistered = ""
             }
-          } else if (res.data.is_registered === 0) {
-            this.querySuccess = true
-            this.validResult = true
-            this.resultShow = true
-            this.alreadyRegistered = this.domainOrAddress + " is not registered"
-          } else if (res.data.is_registered === 1) {
-            this.querySuccess = false
-            this.validResult = true
-            this.resultShow = true
-            this.alreadyRegistered = this.domainOrAddress + " is already registered"
-          } else {
-            this.querySuccess = false
-            this.validResult = true
-            this.resultShow = false
-            this.alreadyRegistered = ""
-          }
-          if (this.validResult && this.domainOrAddress === "domain") {this.getDomain()}
-          if (this.validResult && this.domainOrAddress === "address") {this.getAddress()}
+            if (self.validResult && self.domainOrAddress === "domain") {
+              self.getDomain()
+            }
+            if (self.validResult && self.domainOrAddress === "address") {
+              self.getAddress()
+            }
+          })
         }).catch(
             error => {
               console.log(error)
-              this.querySuccess = false
-              this.validResult = false
-              this.resultShow = true
-              this.alreadyRegistered = "error"
-              if (error.response.data.fields[0].error != null) {
-                this.alreadyRegistered = error.response.data.fields[0].error
-              }
+              self.querySuccess = false
+              self.validResult = false
+              self.resultShow = true
+              self.alreadyRegistered = error.toString()
             }
         )}
     }

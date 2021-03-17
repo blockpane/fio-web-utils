@@ -176,10 +176,13 @@ export default {
     getAnchorConnected: function () {
       this.updateFeeTable()
       if (this.getAnchorConnected === false) {
-        this.setNetwork()
+        this.initNetwork()
       }
     },
     getNetwork: function () {
+      this.updateFeeTable()
+    },
+    getEndpoint: function () {
       this.updateFeeTable()
     }
   },
@@ -233,8 +236,8 @@ export default {
       await this.updateFeeTable()
     },
 
-    setNetwork: function () {
-      this.setNetwork(this.network)
+    initNetwork: function () {
+      this.setNetwork({net: this.network, endpoint: this.getEndpoint})
       this.setTransport(null)
       this.resetAnchorLink()
       this.setAnchorId(null)

@@ -40,15 +40,25 @@ export const store = new Vuex.Store({
             state.resultMessage = msg
         },
 
-        setNetwork (state, net) {
-            state.network = net
+        setNetwork (state, newEndpoint) {
+            console.log(newEndpoint.net + " new endpoint: " + newEndpoint.endpoint)
+            state.network = newEndpoint.net
             state.chainId = state.mainnet
-            state.endpoint = state.mainEndpoint
-            if (net === "testnet") {
-                state.chainId = state.testnet
-                state.endpoint = state.testEndpoint
+            if ( newEndpoint.endpoint === undefined || newEndpoint.endpoint === "" ) {
+                if (state.network === "testnet") {
+                    state.endpoint = state.testEndpoint
+                } else {
+                    state.network = "mainnet"
+                    state.endpoint = state.mainEndpoint
+                    state.chainId = state.mainnet
+                }
+            } else {
+                state.endpoint = newEndpoint.endpoint
             }
-            state.resultMessage = "changing network to: " + net
+            if (newEndpoint.net === "testnet") {
+                state.chainId = state.testnet
+            }
+            state.resultMessage = `changing network to: ${ state.network } via ${ state.endpoint }`
             state.anchorConnected = false
         },
 

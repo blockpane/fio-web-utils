@@ -10,7 +10,6 @@
   "dependencies": {
     "anchor-link": "^3.1.0",
     "anchor-link-browser-transport": "^3.0.1",
-    "axios": "^0.21.1",
     "babel-plugin-prismjs": "^2.0.1",
     "bootstrap": "^4.6.0",
     "bootstrap-vue": "^2.21.2",

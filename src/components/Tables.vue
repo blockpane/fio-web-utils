@@ -426,9 +426,19 @@ export default {
     this.getContracts()
   },
 
+  watch: {
+    getNetwork: function () {
+      this.getContracts()
+    },
+    endpoint: function () {
+      this.getContracts()
+    }
+  },
+
   computed: {
     ...mapGetters({
       endpoint: 'getEndpoint',
+      getNetwork: 'getNetwork',
     }),
 
     disableQueryButton: function () {
