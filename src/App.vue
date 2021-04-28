@@ -20,8 +20,8 @@
         <b-col class="col-2"><div style="padding-top: 10px;" class="text-center bold align-text-bottom text-secondary"> {{ getPageTitle }}</div></b-col>
         <b-col class="col-3 text-light">
           <td>
-          <div style="padding-top: 6px;">
-            <b-select v-model="network" class="custom-select-sm border-black bg-dark text-white-50">
+          <div style="padding-top: 6px; padding-right: 10px;">
+            <b-select v-model="network" class="custom-select-sm border-secondary bg-dark text-white-50">
               <b-select-option value="mainnet">Main Net</b-select-option>
               <b-select-option value="testnet">Test Net</b-select-option>
             </b-select>
@@ -29,7 +29,7 @@
           </td>
           <td>
             <div v-if="network === 'mainnet'">
-            <b-select v-model="currentNode" v-on:change="updateCurrent" :options="mainNodes" class="custom-select-sm border-black bg-dark text-white-50">
+            <b-select v-model="currentNode" v-on:change="updateCurrent" :options="mainNodes" class="custom-select-sm border-secondary bg-dark text-white-50">
             </b-select>
             </div>
           </td>
