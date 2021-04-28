@@ -6,8 +6,8 @@
         <b-col class="col-3">
           <b-dropdown variant="dark" text="FIO Tools">
             <b-dropdown-item-button v-on:click="navNames()">Name / Domain Lookup</b-dropdown-item-button>
-            <b-dropdown-item-button v-on:click="navProxies()">Voting: Proxies</b-dropdown-item-button>
-            <b-dropdown-item-button v-on:click="navVote()">Voting: BP Rankings</b-dropdown-item-button>
+            <!-- b-dropdown-item-button v-on:click="navProxies()">Voting: Proxies</b-dropdown-item-button>
+            <b-dropdown-item-button v-on:click="navVote()">Voting: BP Rankings</b-dropdown-item-button -->
           </b-dropdown>
           <b-dropdown variant="dark" text="BP Tools">
             <b-dropdown-item-button v-on:click="navFees()">Fee Votes</b-dropdown-item-button>
