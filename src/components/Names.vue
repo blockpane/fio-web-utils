@@ -1,7 +1,8 @@
 <template>
   <div class="names" style="text-align: center; padding-top: 10px;">
     <div class="container-lg" >
-      <img alt="FIO" src="../assets/fio-dark.svg" height="64" ><br /><br /><span class="text-xl-center">Domain / Address Search</span>
+      <img alt="FIO" src="../assets/fio-dark.svg" height="64" ><br /><br />
+      <!-- <span class="text-xl-center">Domain / Address Search</span> -->
     </div>
 
     <div class="container-lg">
@@ -75,7 +76,7 @@
       <br />
       <br />
     </div>
-    <p id="sans">Where to get addresses/domains:</p>
+    <p id="sans">Where else to get addresses/domains:</p>
     <div class="container-lg">
       <div class="row">
         <div class="col-lg">
@@ -125,6 +126,10 @@ export default {
         is_public: "",
         expiration: "",
       },
+      showRenewDomain: false,
+      showRenewAddress: false,
+      showRegDomain: false,
+      showRegAddress: false,
     }
   },
 
@@ -187,6 +192,10 @@ export default {
 
     getDomain() {
       let self = this
+      self.showRenewDomain = false
+      self.showRenewAddress = false
+      self.showRegDomain = false
+      self.showRegAddress = false
       const encoded = new TextEncoder().encode(self.input)
       crypto.subtle.digest("SHA-1", encoded).then( hash => {
         const hashArray = Array.from(new Uint8Array(hash)).slice(0,16).reverse()
@@ -222,6 +231,13 @@ export default {
               }
               const t = new Date(res.rows[0].expiration * 1000);
               self.domainResult.expiration = t.toISOString()
+              console.log("now: " + (parseInt(Date.now().toFixed(0)) / 1000))
+              console.log("     " + parseInt(res.rows.[0].expiration))
+              if ((parseInt(Date.now().toFixed(0)) / 1000) > parseInt(res.rows.[0].expiration) + 90 * 24 * 60 * 60) {
+                self.domainResult.expiration += "is expired, and available to register!"
+              } else if ((parseInt(Date.now().toFixed(0)) / 1000) > parseInt(res.rows.[0].expiration)) {
+                self.domainResult.expiration += " is pending expiration – within 90 day grace period."
+              }
               self.showDomainTable = true
             }
           })

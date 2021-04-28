@@ -41,7 +41,7 @@
         </b-col>
         <b-col class="text-left">
           Suggested Fee Ratio
-          <b-input id="multi" v-model="multiplier" type="number" v-on:change="updateFeeTable()">
+          <b-input id="multi" v-model="multiplier" type="text" v-on:change="updateFeeTable()">
           </b-input>
         </b-col>
         <b-col class="text-sm-left">

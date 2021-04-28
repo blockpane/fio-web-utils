@@ -3,6 +3,8 @@ import Router from 'vue-router'
 import Names from "@/components/Names";
 import FeeVote from "@/components/Fees";
 import Tables from "@/components/Tables";
+import Proxy from "@/components/Proxy";
+import Vote from "@/components/Vote";
 
 Vue.use(Router)
 
@@ -29,6 +31,16 @@ export default new Router({
             path: '/tables',
             name: 'tables',
             component: Tables
+        },
+        {
+            path: '/proxies',
+            name: 'proxies',
+            component: Proxy,
+        },
+        {
+            path: '/vote',
+            name: 'vote',
+            component: Vote,
         },
     ]
 })

@@ -2,6 +2,22 @@
   <div class="tables">
     <b-container class="container-xl" style="padding-top: 10px;">
       <b-row align-v="start">
+        <b-col class="col-1">
+          <b-icon icon="question-circle" v-b-modal.tbl-help-modal class="text-info align-middle" v-b-popover.hover.top="'Help'" style="height: 18px;"></b-icon>
+          <b-modal id="tbl-help-modal" size="xl"  ok-only ok-title="Close" title="Help">
+            <div id="p">
+              <h3>Table Lookups</h3>
+              <p id="p">This tool allows performing lookups against the EOSIO state for each contract. It will pre-load the list of all FIO tables, and the ABI definitions in advance.</p>
+              <h4>Tips on using the Table Search tool</h4>
+              <p id="p">By default, the searches assume an integer index that is incrementing. This allows incrementing through the table page by page. If you keep getting the same page when trying to go to the next page, it's likely that the table is using a 'name' type for the index. Under the covers a name is actually an integer, but it usually a very large integer. Reverse sort does work, but you cannot page through a table when it's enabled.</p>
+              <h4>Advanced options</h4>
+              <p id="p">In FIO there are only 3 index types in use (though EOSIO allows many others.) In the advanced tab, you can select the type of index, which index is being used, and can perform a hash of the value in the case of i128 indexes. This is how lookups for text are performed, and these are always an index number higher than one.</p>
+              <p id="p">The "By Scope" option is for tables with secondary indexes, also called a scope. If you query a table and it comes back empty, it's likely because it's scoped. A good example is the 'eosio.msig' contracts 'proposals' table. Click on the "By Scope" checkbox, and it will allow querying the scopes in use on that table. Then the "scope" field from the results can be used by un-clicking "By Scope" and entering that account name into the scope field. </p>
+              <h4>Output</h4>
+              <p id="p">The output dropdown allows viewing various data related to the query. By default it shows the results, but it can also show the input sent to the API server, the contract's ABI, and can generate functioning source code that will recreate the query in several programming languages.</p>
+            </div>
+          </b-modal>
+        </b-col>
         <b-col class="col-2">
           <b-select class="custom-select-sm border-dark" :options="contracts" v-on:change="selectedContract()" v-model="form.contract">
           </b-select>
@@ -10,11 +26,11 @@
           <b-select class="custom-select-sm border-dark" :options="tables" v-model="form.table">
           </b-select>
         </b-col>
-        <b-col class="col-2">
+        <b-col class="col-1">
           <div>
             <b-button v-on:click="prevOffset()" class="btn-sm btn-dark" :disabled="form.offset === 0 || form.showAdvanced">
               <b-icon icon="arrow-left"></b-icon>
-              previous
+              prev
             </b-button>
           </div>
         </b-col>
@@ -26,7 +42,7 @@
           <b-form-input class="border-dark text-sm-center" id="offset" size="sm" type="number" v-model="form.offset" :disabled="form.showAdvanced"></b-form-input>
           <b-form-text id="offset-help">Offset</b-form-text>
         </b-col>
-        <b-col class="col-2">
+        <b-col class="col-1">
           <b-button class="btn-sm btn-dark" :disabled="form.showAdvanced" v-on:click="nextOffset()" >
             next
             <b-icon icon="arrow-right"></b-icon>

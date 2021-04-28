@@ -7,6 +7,7 @@ import AnchorLink from "anchor-link";
 
 export const store = new Vuex.Store({
     state: {
+        pageTitle: "",
         anchorConnected: false,
         anchorIdentity: {},
         anchorTransport: {},
@@ -22,6 +23,7 @@ export const store = new Vuex.Store({
     },
 
     getters: {
+        getPageTitle: state => {return state.pageTitle},
         getAnchorConnected: state => { return state.anchorConnected },
         getAnchorIdentity: state => { return state.anchorIdentity },
         getAnchorTransport: state => { return state.anchorTransport },
@@ -33,6 +35,9 @@ export const store = new Vuex.Store({
     },
 
     mutations: {
+        setPageTitle (state, newTitle) {
+            state.pageTitle = newTitle
+        },
         setConnected (state, isCon) {
             state.anchorConnected = isCon
         },

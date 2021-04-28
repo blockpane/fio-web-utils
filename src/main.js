@@ -2,6 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 import VueClipboard from 'vue-clipboard2'
+import './plugins/table.js'
 
 // Import Bootstrap an BootstrapVue CSS files (order is important)
 import 'bootswatch/dist/litera/bootstrap.min.css';
