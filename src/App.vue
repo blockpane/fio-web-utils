@@ -123,6 +123,7 @@ export default {
         {value: "https://fiotestnet.greymass.com", text: "Server: Greymass"},
         {value: "https://testnet.fio.eosdetroit.io", text: "Server: EOS Detroit"},
         {value: "https://test.fio.eosusa.news", text: "Server: EOSUSA"},
+        {value: "https://fio-testnet.genereos.io", text: "Server: GenerEOS"},
         {value: "https://api.fiotest.alohaeos.com", text: "Server: Aloha EOS"},
         {value: "https://api.fiotest.currencyhub.io", text: "Server: Currency Hub"},
         {value: "https://testnet.fioprotocol.io", text: "Server: Cryptolions"},
