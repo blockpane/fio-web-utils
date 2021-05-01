@@ -131,6 +131,7 @@ export default {
         {value: "https://fio-test.eos.barcelona", text: "Server: EOS Barcelona"},
         {value: "https://fiotestnet.ledgerwise.io", text: "Server: Ledgerwise"},
         {value: "https://fio-testnet.eosblocksmith.io", text: "Server: EOS Blocksmith"},
+        {value: "https://fio-bp.dmail.co:7777", text: "Server: dmail labs"},
       ],
     }
   },
