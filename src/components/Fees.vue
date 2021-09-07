@@ -95,7 +95,7 @@ export default {
       multiplier: 0,
       sortDescending: true,
       fees: [
-        {end_point: "add_bundled_transactions", value: 200000000},
+        {end_point: "add_bundled_transactions", value: 2000000000},
         {end_point: "add_pub_address", value: 30000000},
         {end_point: "add_to_whitelist", value: 30000000},
         {end_point: "auth_delete", value: 20000000},
