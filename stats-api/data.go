@@ -7,6 +7,9 @@ import (
 
 var (
 	feeMap = map[string]string{
+		"add_nft":                    "addnft",
+		"remove_all_nfts":            "remove_all_nfts",
+		"remove_nft":                 "remallnfts",
 		"add_bundled_transactions":   "addbundles",
 		"add_pub_address":            "addaddress",
 		"cancel_funds_request":       "cancelfndreq",
@@ -58,6 +61,7 @@ func u(u64 uint64) *uint64 {
 func suggestFee() []*models.Feevote {
 	return []*models.Feevote{
 		{EndPoint: s("add_bundled_transactions"), Value: u(2000000000)},
+		{EndPoint: s("add_nft"), Value: u(30000000)},
 		{EndPoint: s("add_pub_address"), Value: u(30000000)},
 		{EndPoint: s("add_to_whitelist"), Value: u(30000000)},
 		{EndPoint: s("auth_delete"), Value: u(20000000)},
@@ -79,8 +83,10 @@ func suggestFee() []*models.Feevote {
 		{EndPoint: s("register_producer"), Value: u(10000000000)},
 		{EndPoint: s("register_proxy"), Value: u(1000000000)},
 		{EndPoint: s("reject_funds_request"), Value: u(30000000)},
+		{EndPoint: s("remove_all_nfts"), Value: u(60000000)},
 		{EndPoint: s("remove_all_pub_addresses"), Value: u(60000000)},
 		{EndPoint: s("remove_from_whitelist"), Value: u(30000000)},
+		{EndPoint: s("remove_nft"), Value: u(60000000)},
 		{EndPoint: s("remove_pub_address"), Value: u(60000000)},
 		{EndPoint: s("renew_fio_address"), Value: u(2000000000)},
 		{EndPoint: s("renew_fio_domain"), Value: u(40000000000)},

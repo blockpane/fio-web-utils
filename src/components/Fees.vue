@@ -96,6 +96,7 @@ export default {
       sortDescending: true,
       fees: [
         {end_point: "add_bundled_transactions", value: 2000000000},
+        {end_point: "add_nft", value: 30000000},
         {end_point: "add_pub_address", value: 30000000},
         {end_point: "add_to_whitelist", value: 30000000},
         {end_point: "auth_delete", value: 20000000},
@@ -117,8 +118,10 @@ export default {
         {end_point: "register_producer", value: 10000000000},
         {end_point: "register_proxy", value: 1000000000},
         {end_point: "reject_funds_request", value: 30000000},
+        {end_point: "remove_all_nfts", value: 60000000},
         {end_point: "remove_all_pub_addresses", value: 60000000},
         {end_point: "remove_from_whitelist", value: 30000000},
+        {end_point: "remove_nft", value: 60000000},
         {end_point: "remove_pub_address", value: 60000000},
         {end_point: "renew_fio_address", value: 2000000000},
         {end_point: "renew_fio_domain", value: 40000000000},
